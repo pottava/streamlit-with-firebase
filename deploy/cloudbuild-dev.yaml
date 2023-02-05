@@ -17,7 +17,8 @@ steps:
     entrypoint: gcloud
     args: ['run', 'deploy', 'dev-svc', '--region=asia-northeast1',
       '--image=asia-northeast1-docker.pkg.dev/$PROJECT_ID/my-apps/streamlit:$SHORT_SHA',
-      '--service-account=sa-app@$PROJECT_ID.iam.gserviceaccount.com']
+      '--service-account=sa-app@$PROJECT_ID.iam.gserviceaccount.com',
+      '--set-env-vars=GCLOUD_PROJECT=$PROJECT_ID']
 
 availableSecrets:
   secretManager:

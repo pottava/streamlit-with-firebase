@@ -41,17 +41,21 @@ def refresh():
         user = auth.refresh(st.session_state.user["refreshToken"])
         st.session_state.user = user  # with userId
         return True
-    except:
+    except Exception:
         del st.session_state.user
     return False
 
 
 def user():
+    """
+    Return user information
+        e.g. firebase.user()["email"]
+    """
     if "user" not in st.session_state:
         return None
     try:
         user = auth.get_account_info(st.session_state.user["idToken"])
-    except:
+    except Exception:
         del st.session_state.user
     if "users" in user and len(user["users"]) > 0:
         return user["users"][0]

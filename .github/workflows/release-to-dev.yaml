@@ -31,7 +31,7 @@ jobs:
     - name: 'Generate a requirements.txt'
       run: |
         pip install poetry
-        poetry export --without-hashes --format=requirements.txt > requirements.txt
+        poetry export --without dev --without-hashes --format=requirements.txt > requirements.txt
       working-directory: src
 
     - name: 'Create the firebase.js'
@@ -41,4 +41,4 @@ jobs:
       run: gcloud builds submit --pack image=${{ env.GOOGLECLOUD_REGION }}-docker.pkg.dev/${{ secrets.GOOGLECLOUD_PROJECT }}/my-apps/streamlit:${{ github.sha }} src
 
     - name: 'Release to Dev'
-      run: gcloud run deploy dev-svc --region ${{ env.GOOGLECLOUD_REGION }} --image ${{ env.GOOGLECLOUD_REGION }}-docker.pkg.dev/${{ secrets.GOOGLECLOUD_PROJECT }}/my-apps/streamlit:${{ github.sha }} --service-account "sa-app@${{ secrets.GOOGLECLOUD_PROJECT }}.iam.gserviceaccount.com"
+      run: gcloud run deploy dev-svc --region ${{ env.GOOGLECLOUD_REGION }} --image ${{ env.GOOGLECLOUD_REGION }}-docker.pkg.dev/${{ secrets.GOOGLECLOUD_PROJECT }}/my-apps/streamlit:${{ github.sha }} --service-account "sa-app@${{ secrets.GOOGLECLOUD_PROJECT }}.iam.gserviceaccount.com" --set-env-vars GCLOUD_PROJECT=${{ secrets.GOOGLECLOUD_PROJECT }}

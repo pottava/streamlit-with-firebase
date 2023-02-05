@@ -36,6 +36,9 @@ export project_id=$( gcloud config get-value project )
 gcloud iam service-accounts create sa-app \
     --display-name "SA for the streamlit app" \
     --description "Service Account for the Streamlit application"
+gcloud projects add-iam-policy-binding "${project_id}" \
+    --member "serviceAccount:sa-app@${project_id}.iam.gserviceaccount.com" \
+    --role "roles/bigquery.jobUser"
 ```
 
 ### Cloud Run
@@ -62,10 +65,10 @@ cd streamlit-with-firebase
 ### アプリケーションの依存解決と起動
 
 ```sh
-pip install poetry
-export GOOGLE_CLOUD_PROJECT=$( gcloud config get-value project )
-gcloud auth application-default login
 cd src
+gcloud auth application-default login
+export GCLOUD_PROJECT=$( gcloud config get-value project )
+pip install poetry
 poetry install
 poetry run streamlit run app.py
 ```
@@ -111,13 +114,14 @@ gcloud iam service-accounts add-iam-policy-binding \
 
 ```sh
 cd src
-poetry export --without-hashes --format=requirements.txt > requirements.txt
+poetry export --without dev --without-hashes --format=requirements.txt > requirements.txt
 gcloud builds submit \
     --pack "image=asia-northeast1-docker.pkg.dev/${project_id}/my-apps/streamlit" \
     .
 gcloud run deploy dev-svc --region "asia-northeast1" \
     --image "asia-northeast1-docker.pkg.dev/${project_id}/my-apps/streamlit" \
-    --service-account "sa-app@${project_id}.iam.gserviceaccount.com"
+    --service-account "sa-app@${project_id}.iam.gserviceaccount.com" \
+    --set-env-vars GCLOUD_PROJECT=$( gcloud config get-value project )
 open "$( gcloud run services describe dev-svc --region "asia-northeast1" \
     --format 'value(status.url)')"
 ```
@@ -164,4 +168,4 @@ GitHub プロジェクトの Secret に以下の値を設定します。
 
 - GOOGLECLOUD_PROJECT: プロジェクト ID
 - GOOGLECLOUD_SA_KEY: デプロイするためのサービス アカウント
-- GOOGLECLOUD_FIREBASE: Firebase の設定 JSON（ダブル クオーテーションにはエスケープが必要）
+- GOOGLECLOUD_FIREBASE: Firebase の設定 JSON（GitHub の場合はダブル クオーテーションにエスケープが必要です）

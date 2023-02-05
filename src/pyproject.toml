@@ -9,6 +9,9 @@ readme = "README.md"
 python = ">=3.9,<3.9.7 || >3.9.7,<4.0"
 streamlit = "^1.17.0"
 pyrebase4 = "^4.6.0"
+google-cloud-bigquery = "^3.5.0"
+pandas = "^1.5.3"
+db-dtypes = "^1.0.5"
 
 [tool.poetry.group.dev.dependencies]
 flake8 = "^5.0.4"

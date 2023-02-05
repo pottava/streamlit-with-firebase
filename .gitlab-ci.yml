@@ -34,9 +34,9 @@ deploy-to-dev:
     - python3 -m ensurepip --upgrade
     - pip3 install poetry
     - cd src
-    - poetry export --without-hashes --format=requirements.txt > requirements.txt
+    - poetry export --without dev --without-hashes --format=requirements.txt > requirements.txt
     - echo ${GOOGLECLOUD_FIREBASE} > libs/config.py
     - gcloud builds submit --pack image=${GOOGLECLOUD_REGION}-docker.pkg.dev/${GOOGLECLOUD_PROJECT}/my-apps/streamlit:${CI_COMMIT_SHORT_SHA} .
-    - gcloud run deploy dev-svc --image ${GOOGLECLOUD_REGION}-docker.pkg.dev/${GOOGLECLOUD_PROJECT}/my-apps/streamlit:${CI_COMMIT_SHORT_SHA} --region "${GOOGLECLOUD_REGION}" --service-account "sa-app@${GOOGLECLOUD_PROJECT}.iam.gserviceaccount.com"
+    - gcloud run deploy dev-svc --image ${GOOGLECLOUD_REGION}-docker.pkg.dev/${GOOGLECLOUD_PROJECT}/my-apps/streamlit:${CI_COMMIT_SHORT_SHA} --region "${GOOGLECLOUD_REGION}" --service-account "sa-app@${GOOGLECLOUD_PROJECT}.iam.gserviceaccount.com" --set-env-vars GCLOUD_PROJECT=${GOOGLECLOUD_PROJECT}
   only:
     - main
