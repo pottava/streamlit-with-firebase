@@ -1,0 +1,44 @@
+name: Release to dev
+
+on:
+  push:
+    branches:
+    - main
+
+env:
+  GOOGLECLOUD_REGION: "asia-northeast1"
+
+jobs:
+  tests:
+    name: Tests
+    uses: ./.github/workflows/tests.yaml
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - id: 'auth'
+      uses: 'google-github-actions/auth@v1'
+      with:
+        credentials_json: '${{ secrets.GOOGLECLOUD_SA_KEY }}'
+
+    - name: 'Set up Cloud SDK'
+      uses: 'google-github-actions/setup-gcloud@v1'
+
+    - name: 'Generate a requirements.txt'
+      run: |
+        pip install poetry
+        poetry export --without-hashes --format=requirements.txt > requirements.txt
+      working-directory: src
+
+    - name: 'Create the firebase.js'
+      run: echo "${{ secrets.GOOGLECLOUD_FIREBASE }}" > src/libs/config.py
+
+    - name: 'Build the image'
+      run: gcloud builds submit --pack image=${{ env.GOOGLECLOUD_REGION }}-docker.pkg.dev/${{ secrets.GOOGLECLOUD_PROJECT }}/my-apps/streamlit:${{ github.sha }} src
+
+    - name: 'Release to Dev'
+      run: gcloud run deploy dev-svc --region ${{ env.GOOGLECLOUD_REGION }} --image ${{ env.GOOGLECLOUD_REGION }}-docker.pkg.dev/${{ secrets.GOOGLECLOUD_PROJECT }}/my-apps/streamlit:${{ github.sha }} --service-account "sa-app@${{ secrets.GOOGLECLOUD_PROJECT }}.iam.gserviceaccount.com"

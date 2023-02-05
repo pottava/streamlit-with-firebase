@@ -1,0 +1,25 @@
+steps:
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args: ['deploy/test.sh']
+
+  - name: bash
+    script: echo "${FIREBASE_JS}" > src/libs/config.py
+    secretEnv: ['FIREBASE_JS']
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args: ['builds', 'submit',
+      '--pack', 'image=asia-northeast1-docker.pkg.dev/$PROJECT_ID/my-apps/streamlit:$SHORT_SHA',
+      'src']
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args: ['run', 'deploy', 'dev-svc', '--region=asia-northeast1',
+      '--image=asia-northeast1-docker.pkg.dev/$PROJECT_ID/my-apps/streamlit:$SHORT_SHA',
+      '--service-account=sa-app@$PROJECT_ID.iam.gserviceaccount.com']
+
+availableSecrets:
+  secretManager:
+  - versionName: projects/$PROJECT_ID/secrets/firebase-configs/versions/latest
+    env: 'FIREBASE_JS'

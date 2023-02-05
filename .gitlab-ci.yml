@@ -1,0 +1,40 @@
+services:
+  - docker:dind
+
+image:
+  name: docker
+
+variables:
+  GOOGLECLOUD_REGION: asia-northeast1
+
+stages:
+  - test
+  - deploy
+
+test:
+  stage: test
+  <<: *poetry
+  image: python:3.9-slim
+  script:
+    - ./deploy/test.sh
+  except:
+    - tags
+
+.gcloud_auth: &gcloud_auth
+  before_script:
+    - echo ${GOOGLECLOUD_SA_KEY} > key.json
+    - docker run --rm -v $(pwd):/work -v $(pwd)/config:/root/.config -w /work google/cloud-sdk:alpine gcloud auth activate-service-account --key-file key.json
+    - docker run --rm -v $(pwd):/work -v $(pwd)/config:/root/.config -w /work google/cloud-sdk:alpine gcloud config set project ${GOOGLECLOUD_PROJECT}
+    - rm -rf key.json
+
+deploy-to-dev:
+  stage: deploy
+  <<: *gcloud_auth
+  script:
+    - pip install poetry
+    - poetry export --without-hashes --format=requirements.txt > requirements.txt
+    - echo ${GOOGLECLOUD_FIREBASE} > src/libs/config.py
+    - docker run --rm -v $(pwd):/work -v $(pwd)/config:/root/.config -w /work google/cloud-sdk:alpine gcloud builds submit --pack image=${GOOGLECLOUD_REGION}-docker.pkg.dev/${GOOGLECLOUD_PROJECT}/my-apps/streamlit:${CI_COMMIT_SHORT_SHA} src
+    - docker run --rm -v $(pwd):/work -v $(pwd)/config:/root/.config -w /work google/cloud-sdk:alpine gcloud run deploy dev-svc --image ${GOOGLECLOUD_REGION}-docker.pkg.dev/${GOOGLECLOUD_PROJECT}/my-apps/streamlit:${CI_COMMIT_SHORT_SHA} --region "${GOOGLECLOUD_REGION}" --service-account "sa-app@${GOOGLECLOUD_PROJECT}.iam.gserviceaccount.com"
+  only:
+    - main
