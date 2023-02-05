@@ -2,7 +2,7 @@ services:
   - docker:dind
 
 image:
-  name: docker
+  name: google/cloud-sdk:416.0.0-alpine
 
 variables:
   GOOGLECLOUD_REGION: asia-northeast1
@@ -13,9 +13,9 @@ stages:
 
 test:
   stage: test
-  <<: *poetry
-  image: python:3.9-slim
   script:
+    - python3 -m ensurepip --upgrade
+    - ln -s /usr/bin/pip3 /usr/bin/pip
     - ./deploy/test.sh
   except:
     - tags
@@ -23,18 +23,20 @@ test:
 .gcloud_auth: &gcloud_auth
   before_script:
     - echo ${GOOGLECLOUD_SA_KEY} > key.json
-    - docker run --rm -v $(pwd):/work -v $(pwd)/config:/root/.config -w /work google/cloud-sdk:alpine gcloud auth activate-service-account --key-file key.json
-    - docker run --rm -v $(pwd):/work -v $(pwd)/config:/root/.config -w /work google/cloud-sdk:alpine gcloud config set project ${GOOGLECLOUD_PROJECT}
+    - gcloud auth activate-service-account --key-file key.json
+    - gcloud config set project ${GOOGLECLOUD_PROJECT}
     - rm -rf key.json
 
 deploy-to-dev:
   stage: deploy
   <<: *gcloud_auth
   script:
-    - pip install poetry
+    - python3 -m ensurepip --upgrade
+    - pip3 install poetry
+    - cd src
     - poetry export --without-hashes --format=requirements.txt > requirements.txt
-    - echo ${GOOGLECLOUD_FIREBASE} > src/libs/config.py
-    - docker run --rm -v $(pwd):/work -v $(pwd)/config:/root/.config -w /work google/cloud-sdk:alpine gcloud builds submit --pack image=${GOOGLECLOUD_REGION}-docker.pkg.dev/${GOOGLECLOUD_PROJECT}/my-apps/streamlit:${CI_COMMIT_SHORT_SHA} src
-    - docker run --rm -v $(pwd):/work -v $(pwd)/config:/root/.config -w /work google/cloud-sdk:alpine gcloud run deploy dev-svc --image ${GOOGLECLOUD_REGION}-docker.pkg.dev/${GOOGLECLOUD_PROJECT}/my-apps/streamlit:${CI_COMMIT_SHORT_SHA} --region "${GOOGLECLOUD_REGION}" --service-account "sa-app@${GOOGLECLOUD_PROJECT}.iam.gserviceaccount.com"
+    - echo ${GOOGLECLOUD_FIREBASE} > libs/config.py
+    - gcloud builds submit --pack image=${GOOGLECLOUD_REGION}-docker.pkg.dev/${GOOGLECLOUD_PROJECT}/my-apps/streamlit:${CI_COMMIT_SHORT_SHA} .
+    - gcloud run deploy dev-svc --image ${GOOGLECLOUD_REGION}-docker.pkg.dev/${GOOGLECLOUD_PROJECT}/my-apps/streamlit:${CI_COMMIT_SHORT_SHA} --region "${GOOGLECLOUD_REGION}" --service-account "sa-app@${GOOGLECLOUD_PROJECT}.iam.gserviceaccount.com"
   only:
     - main
