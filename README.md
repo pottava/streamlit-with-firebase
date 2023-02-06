@@ -157,6 +157,9 @@ gcloud iam service-accounts add-iam-policy-binding \
     sa-app@${project_id}.iam.gserviceaccount.com \
     --member "serviceAccount:sa-cicd@${project_id}.iam.gserviceaccount.com" \
     --role "roles/iam.serviceAccountUser"
+gcloud secrets add-iam-policy-binding firebase-configs \
+    --member "serviceAccount:sa-cicd@${project_id}.iam.gserviceaccount.com" \
+    --role "roles/secretmanager.secretAccessor"
 ```
 
 CI ツールと連携する Workload Identity の設定をします。
@@ -190,7 +193,6 @@ gcloud iam workload-identity-pools providers describe "idp-github" \
 
 - GOOGLE_CLOUD_PROJECT: プロジェクト ID
 - GOOGLE_CLOUD_WORKLOAD_IDP: Workload Identity の IdP ID
-- GOOGLE_CLOUD_FIREBASE: Firebase の設定 JSON、ダブル クオーテーションにエスケープが必要です！！
 
 ### GitLab CI/CD の場合
 
@@ -215,4 +217,3 @@ gcloud iam workload-identity-pools providers describe "idp-gitlab" \
 
 - GOOGLE_CLOUD_PROJECT: プロジェクト ID
 - GOOGLE_CLOUD_WORKLOAD_IDP: Workload Identity の IdP ID
-- GOOGLE_CLOUD_FIREBASE: Firebase の設定 JSON

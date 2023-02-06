@@ -28,7 +28,7 @@ deploy-to-dev:
   stage: deploy
   <<: *gcloud_auth
   script:
-    - echo ${GOOGLE_CLOUD_FIREBASE} > src/libs/config.py
+    - gcloud secrets versions access latest --secret firebase-configs > src/libs/config.py
     - gcloud builds submit --tag ${GOOGLE_CLOUD_REGION}-docker.pkg.dev/${GOOGLE_CLOUD_PROJECT}/my-apps/streamlit:${CI_COMMIT_SHORT_SHA} src
     - gcloud run deploy dev-svc --image ${GOOGLE_CLOUD_REGION}-docker.pkg.dev/${GOOGLE_CLOUD_PROJECT}/my-apps/streamlit:${CI_COMMIT_SHORT_SHA} --region "${GOOGLE_CLOUD_REGION}" --service-account "sa-app@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com" --set-env-vars GCLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT}
   only:

@@ -25,9 +25,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Create the firebase.js
-      run: echo "${{ secrets.GOOGLE_CLOUD_FIREBASE }}" > src/libs/config.py
-
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@v1
       with:
@@ -39,6 +36,9 @@ jobs:
 
     - name: Check the auth
       run: gcloud auth list --filter=status:ACTIVE --format="value(account)"
+
+    - name: Create the firebase.js
+      run: gcloud secrets versions access latest --secret firebase-configs > src/libs/config.py
 
     - name: Configure docker
       run: gcloud auth configure-docker ${{ env.GOOGLE_CLOUD_REGION }}-docker.pkg.dev --quiet
