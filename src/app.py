@@ -1,12 +1,22 @@
+import os
+
 import pandas as pd
 import streamlit as st
+from streamlit.components.v1 import html
 from google.cloud import bigquery
 
 from libs import firebase
 
 st.title("Streamlit & Firebase sample")
-hide_streamlit_menu = "<style>#MainMenu {visibility: hidden;}</style>"
-st.markdown(hide_streamlit_menu, unsafe_allow_html=True)
+st.markdown(
+    """
+    <style>
+        #MainMenu {visibility: hidden; }
+        footer {visibility: hidden;}
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 @st.experimental_singleton()
@@ -48,3 +58,7 @@ if "user" not in st.session_state:
     signin()
 else:
     index()
+
+rev = os.getenv('K_REVISION')
+if rev:
+    html(f'<script>console.log("Revision: {rev}");</script>', height=1)

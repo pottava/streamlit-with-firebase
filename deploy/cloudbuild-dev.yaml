@@ -7,11 +7,11 @@ steps:
     script: echo "${FIREBASE_JS}" > src/libs/config.py
     secretEnv: ['FIREBASE_JS']
 
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: gcloud
-    args: ['builds', 'submit',
-      '--pack', 'image=asia-northeast1-docker.pkg.dev/$PROJECT_ID/my-apps/streamlit:$SHORT_SHA',
-      'src']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/my-apps/streamlit:$SHORT_SHA', 'src']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/my-apps/streamlit:$SHORT_SHA']
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud

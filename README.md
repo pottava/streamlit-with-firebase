@@ -5,7 +5,7 @@
 ```sh
 gcloud services enable compute.googleapis.com run.googleapis.com \
     artifactregistry.googleapis.com secretmanager.googleapis.com \
-    cloudbuild.googleapis.com
+    cloudbuild.googleapis.com iamcredentials.googleapis.com
 ```
 
 ### Firebase Authentication
@@ -114,10 +114,8 @@ gcloud iam service-accounts add-iam-policy-binding \
 
 ```sh
 cd src
-poetry export --without dev --without-hashes --format=requirements.txt > requirements.txt
 gcloud builds submit \
-    --pack "image=asia-northeast1-docker.pkg.dev/${project_id}/my-apps/streamlit" \
-    .
+    --tag "asia-northeast1-docker.pkg.dev/${project_id}/my-apps/streamlit" .
 gcloud run deploy dev-svc --region "asia-northeast1" \
     --image "asia-northeast1-docker.pkg.dev/${project_id}/my-apps/streamlit" \
     --service-account "sa-app@${project_id}.iam.gserviceaccount.com" \
@@ -131,9 +129,9 @@ open "$( gcloud run services describe dev-svc --region "asia-northeast1" \
 - Cloud Run の dev-svc へのデプロイには deploy/cloudbuild-dev.yaml を指定します
 - サービス アカウントは空欄のまま
 
-### GitHub Actions または GitLab CI/CD の場合
+### GitHub Actions または GitLab CI/CD 共通
 
-CI ツールに渡すサービスアカウントを作ります。
+CI ツールで利用するサービスアカウントを作ります。
 
 ```sh
 export project_id=$( gcloud config get-value project )
@@ -159,13 +157,62 @@ gcloud iam service-accounts add-iam-policy-binding \
     sa-app@${project_id}.iam.gserviceaccount.com \
     --member "serviceAccount:sa-cicd@${project_id}.iam.gserviceaccount.com" \
     --role "roles/iam.serviceAccountUser"
-gcloud iam service-accounts keys create key.json \
-    --iam-account "sa-cicd@${project_id}.iam.gserviceaccount.com"
-cat key.json && rm -f key.json
 ```
 
-GitHub プロジェクトの Secret に以下の値を設定します。
+CI ツールと連携する Workload Identity の設定をします。
 
-- GOOGLECLOUD_PROJECT: プロジェクト ID
-- GOOGLECLOUD_SA_KEY: デプロイするためのサービス アカウント
-- GOOGLECLOUD_FIREBASE: Firebase の設定 JSON（GitHub の場合はダブル クオーテーションにエスケープが必要です）
+```sh
+gcloud iam workload-identity-pools create "idpool-cicd" --location "global" \
+    --display-name "Identity pool for CI/CD services"
+idp_id=$( gcloud iam workload-identity-pools describe "idpool-cicd" \
+    --location "global" --format "value(name)" )
+```
+
+### GitHub Actions の場合
+
+```sh
+repo=<org-id>/<repo-id>
+gcloud iam workload-identity-pools providers create-oidc "idp-github" \
+    --workload-identity-pool "idpool-cicd" --location "global" \
+    --issuer-uri "https://token.actions.githubusercontent.com" \
+    --attribute-mapping "google.subject=assertion.sub,attribute.repository=assertion.repository" \
+    --display-name "Workload IdP for GitHub"
+gcloud iam service-accounts add-iam-policy-binding \
+    sa-cicd@${project_id}.iam.gserviceaccount.com \
+    --member "principalSet://iam.googleapis.com/${idp_id}/attribute.user_login/chris" \
+    --role "roles/iam.workloadIdentityUser"
+gcloud iam workload-identity-pools providers describe "idp-github" \
+    --workload-identity-pool "idpool-cicd" --location "global" \
+    --format "value(name)"
+```
+
+プロジェクトの Actions secrets and variables に以下の値を設定します。
+
+- GOOGLE_CLOUD_PROJECT: プロジェクト ID
+- GOOGLE_CLOUD_WORKLOAD_IDP: Workload Identity の IdP ID
+- GOOGLE_CLOUD_FIREBASE: Firebase の設定 JSON、ダブル クオーテーションにエスケープが必要です！！
+
+### GitLab CI/CD の場合
+
+```sh
+repo=<org-id>/<repo-id>
+gcloud iam workload-identity-pools providers create-oidc "idp-gitlab" \
+    --workload-identity-pool "idpool-cicd" --location "global" \
+    --issuer-uri "https://gitlab.com/" \
+    --allowed-audiences "https://gitlab.com" \
+    --attribute-mapping "google.subject=assertion.sub,attribute.project_path=assertion.project_path" \
+    --display-name "Workload IdP for GitLab"
+gcloud iam service-accounts add-iam-policy-binding \
+    sa-cicd@${project_id}.iam.gserviceaccount.com \
+    --member "principalSet://iam.googleapis.com/${idp_id}/attribute.project_path/${repo}" \
+    --role "roles/iam.workloadIdentityUser"
+gcloud iam workload-identity-pools providers describe "idp-gitlab" \
+    --workload-identity-pool "idpool-cicd" --location "global" \
+    --format "value(name)"
+```
+
+プロジェクトの CI/CD Variables に以下の値を設定します。
+
+- GOOGLE_CLOUD_PROJECT: プロジェクト ID
+- GOOGLE_CLOUD_WORKLOAD_IDP: Workload Identity の IdP ID
+- GOOGLE_CLOUD_FIREBASE: Firebase の設定 JSON
