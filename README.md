@@ -83,14 +83,14 @@ gcloud artifacts repositories create my-apps \
     --description="Containerized applications"
 ```
 
-### Cloud Build の場合
-
 Secret Manager に Firebase の設定を保存します。
 
 ```sh
 gcloud secrets create firebase-configs --replication-policy "automatic" \
     --data-file src/libs/config.py
 ```
+
+### Cloud Build の場合
 
 Cloud Build に必要となる権限を付与します。
 
