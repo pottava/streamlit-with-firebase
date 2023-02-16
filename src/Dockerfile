@@ -1,14 +1,21 @@
-FROM python:3.9-slim as poetry
-ENV PYTHONUNBUFFERED=1
-WORKDIR /app
-
-ENV POETRY_HOME=/opt/poetry
-ENV POETRY_VIRTUALENVS_IN_PROJECT=true
+FROM python:3.9-slim as builder
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=off \
+    POETRY_HOME="/opt/poetry" \
+    POETRY_VIRTUALENVS_IN_PROJECT=false
 ENV PATH="${POETRY_HOME}/bin:${PATH}"
 RUN python -c 'from urllib.request import urlopen; print(urlopen("https://install.python-poetry.org").read().decode())' | python -
+RUN poetry config virtualenvs.create false
+WORKDIR /app
 COPY pyproject.toml /app/
 COPY poetry.lock /app/
 RUN poetry install --no-interaction --without dev --no-ansi -vvv
 
+FROM python:3.9-slim
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONIOENCODING="UTF-8"
+COPY --from=builder /usr/local/bin/streamlit /usr/local/bin/
+COPY --from=builder /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages
+WORKDIR /app
 COPY . /app/
-CMD ["poetry", "run", "streamlit", "run", "app.py", "--server.port", "8080"]
+CMD ["streamlit", "run", "app.py", "--server.port", "8080"]
