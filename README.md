@@ -119,7 +119,7 @@ gcloud builds submit \
 gcloud run deploy dev-svc --region "asia-northeast1" \
     --image "asia-northeast1-docker.pkg.dev/${project_id}/my-apps/streamlit" \
     --service-account "sa-app@${project_id}.iam.gserviceaccount.com" \
-    --set-env-vars GCLOUD_PROJECT=$( gcloud config get-value project )
+    --set-env-vars GCLOUD_PROJECT=${project_id}
 open "$( gcloud run services describe dev-svc --region "asia-northeast1" \
     --format 'value(status.url)')"
 ```
@@ -182,7 +182,7 @@ gcloud iam workload-identity-pools providers create-oidc "idp-github" \
     --display-name "Workload IdP for GitHub"
 gcloud iam service-accounts add-iam-policy-binding \
     sa-cicd@${project_id}.iam.gserviceaccount.com \
-    --member "principalSet://iam.googleapis.com/${idp_id}/attribute.user_login/chris" \
+    --member "principalSet://iam.googleapis.com/${idp_id}/attribute.repository/${repo}" \
     --role "roles/iam.workloadIdentityUser"
 gcloud iam workload-identity-pools providers describe "idp-github" \
     --workload-identity-pool "idpool-cicd" --location "global" \

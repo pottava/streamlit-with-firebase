@@ -5,7 +5,7 @@ from streamlit.components.v1 import html
 
 from libs import common, firebase
 
-common.init_page(title="ログイン")
+common.init_page("ログイン")
 st.title("Streamlit & Firebase sample")
 
 
@@ -22,7 +22,7 @@ def index():
     if not firebase.refresh():
         st.experimental_rerun()
         return
-    st.text("ログインしました")
+    st.text("ログインしました。左のメニューから各機能を試せます。")
 
 
 if "user" not in st.session_state:

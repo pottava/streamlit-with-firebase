@@ -1,24 +1,27 @@
 steps:
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: bash
-    args: ['deploy/test.sh']
-
-  - name: bash
+  - id: 'config'
+    name: bash
     script: echo "${FIREBASE_JS}" > src/libs/config.py
     secretEnv: ['FIREBASE_JS']
 
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/my-apps/streamlit:$SHORT_SHA', 'src']
+  - id: 'push'
+    name: 'gcr.io/kaniko-project/executor:latest'
+    args: ['--destination=asia-northeast1-docker.pkg.dev/$PROJECT_ID/my-apps/streamlit:$SHORT_SHA',
+      '--context=dir://src', '--cache=true', '--cache-ttl=6h']
 
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/my-apps/streamlit:$SHORT_SHA']
-
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  - id: 'deploy'
+    name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args: ['run', 'deploy', 'dev-svc', '--region=asia-northeast1',
       '--image=asia-northeast1-docker.pkg.dev/$PROJECT_ID/my-apps/streamlit:$SHORT_SHA',
       '--service-account=sa-app@$PROJECT_ID.iam.gserviceaccount.com',
       '--set-env-vars=GCLOUD_PROJECT=$PROJECT_ID']
+
+  - id: 'test'
+    name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args: ['deploy/test.sh']
+    waitFor: ['-']
 
 availableSecrets:
   secretManager:

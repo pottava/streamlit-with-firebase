@@ -4,7 +4,7 @@ from google.cloud import bigquery
 
 from libs import common, firebase
 
-common.init_page(title="BQ へのクエリと実行結果")
+common.init_page("BigQuery へのクエリ")
 
 
 @st.cache_resource()
