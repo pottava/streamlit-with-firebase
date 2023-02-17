@@ -9,13 +9,13 @@ RUN poetry config virtualenvs.create false
 WORKDIR /app
 COPY pyproject.toml /app/
 COPY poetry.lock /app/
-RUN poetry install --no-interaction --without dev --no-ansi -vvv
+RUN poetry install --no-interaction --without dev --no-ansi --no-root -vvv
 
 FROM python:3.9-slim
 ENV PYTHONUNBUFFERED=1 \
     PYTHONIOENCODING="UTF-8"
-COPY --from=builder /usr/local/bin/streamlit /usr/local/bin/
 COPY --from=builder /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages
+COPY --from=builder /usr/local/bin/streamlit /usr/local/bin/
 WORKDIR /app
 COPY . /app/
 CMD ["streamlit", "run", "app.py", "--server.port", "8080"]
